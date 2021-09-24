@@ -2,10 +2,14 @@ package handlers
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+	"encoding/json"
+    "net/http"
 
 	"github.com/openfaas/faas/gateway/metrics"
 	"github.com/prometheus/client_golang/prometheus"
@@ -50,6 +54,7 @@ type PrometheusFunctionNotifier struct {
 // Notify records metrics in Prometheus
 func (p PrometheusFunctionNotifier) Notify(method string, URL string, originalURL string, statusCode int, event string, duration time.Duration) {
 	serviceName := getServiceName(originalURL)
+	infraType := fetchInfraType(serviceName)
 	if len(p.FunctionNamespace) > 0 {
 		if !strings.Contains(serviceName, ".") {
 			serviceName = fmt.Sprintf("%s.%s", serviceName, p.FunctionNamespace)
@@ -59,7 +64,8 @@ func (p PrometheusFunctionNotifier) Notify(method string, URL string, originalUR
 	if event == "completed" {
 		seconds := duration.Seconds()
 		p.Metrics.GatewayFunctionsHistogram.
-			WithLabelValues(serviceName).
+			// WithLabelValues(serviceName).
+			With(prometheus.Labels{"function_name": serviceName, "infra_type": infraType}).
 			Observe(seconds)
 
 		code := strconv.Itoa(statusCode)
@@ -89,6 +95,49 @@ func getServiceName(urlValue string) string {
 		}
 	}
 	return strings.Trim(serviceName, "/")
+}
+
+func fetchInfraType(service string) string {
+	passwd, pwdErr := ioutil.ReadFile("/var/secrets/basic-auth-password")
+	if pwdErr != nil {
+		fmt.Println("unable to load pwd file")
+		return ""
+	}
+	username, userErr := ioutil.ReadFile("/var/secrets/basic-auth-user")
+	if userErr != nil {
+		fmt.Println("unable to load user file")
+		return ""
+	}
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", os.Getenv("serverlessurl") + "/system/function/"+service, nil)
+	req.SetBasicAuth(strings.TrimSpace(string(username)), strings.TrimSpace(string(passwd)))
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalln(err)
+		return ""
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+		return ""
+	}
+
+	sb := string(body)
+	var jsonb map[string]interface{}
+	var c map[string]interface{}
+	json.Unmarshal([]byte(sb), &jsonb)
+	//c = jsonb["annotations"].(map[string]interface{})
+	if f, found := jsonb["annotations"]; found {
+		c = f.(map[string]interface{})
+		if d, found := c["prometheus_labels"]; found {
+			b := d.(string)
+			return b
+		}
+	}
+	return ""
+	// b := jsonb["annotations"].(map[string]interface{})["prometheus_labels"].(string)
+
 }
 
 // LoggingNotifier notifies a log about a request
