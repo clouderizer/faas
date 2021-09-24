@@ -10,6 +10,7 @@ type AsyncReport struct {
 	FunctionName string  `json:"name"`
 	StatusCode   int     `json:"statusCode"`
 	TimeTaken    float64 `json:"timeTaken"`
+	InfraType    string  `json:"infra"`
 }
 
 // DeleteFunctionRequest delete a deployed function

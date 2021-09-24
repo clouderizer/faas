@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -109,7 +108,7 @@ func fetchInfraType(service string) string {
 		return ""
 	}
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", os.Getenv("serverlessurl") + "/system/function/"+service, nil)
+	req, err := http.NewRequest("GET", "https://serverless.clouderizer.com/system/function/"+service, nil)
 	req.SetBasicAuth(strings.TrimSpace(string(username)), strings.TrimSpace(string(passwd)))
 	resp, err := client.Do(req)
 	if err != nil {

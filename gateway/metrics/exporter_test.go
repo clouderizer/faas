@@ -48,7 +48,7 @@ func Test_Describe_DescribesThePrometheusMetrics(t *testing.T) {
 	}
 
 	d = <-ch
-	expectedGatewayFunctionsHistogramDesc := `Desc{fqName: "gateway_functions_seconds", help: "Function time taken", constLabels: {}, variableLabels: [function_name]}`
+	expectedGatewayFunctionsHistogramDesc := `Desc{fqName: "gateway_functions_seconds", help: "Function time taken", constLabels: {}, variableLabels: [function_name infra_type]}`
 	actualGatewayFunctionsHistogramDesc := d.String()
 	if expectedGatewayFunctionsHistogramDesc != actualGatewayFunctionsHistogramDesc {
 		t.Errorf("Want %s, got: %s", expectedGatewayFunctionsHistogramDesc, actualGatewayFunctionsHistogramDesc)

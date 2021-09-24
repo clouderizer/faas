@@ -17,15 +17,17 @@ func trackInvocation(service string, metrics metrics.MetricOptions, code int) {
 			"code": strconv.Itoa(code)}).Inc()
 }
 
-func trackTime(then time.Time, metrics metrics.MetricOptions, name string) {
+func trackTime(then time.Time, metrics metrics.MetricOptions, name string, infra string) {
 	since := time.Since(then)
 	metrics.GatewayFunctionsHistogram.
-		WithLabelValues(name).
+		// WithLabelValues(name).
+		With(prometheus.Labels{"function_name": name, "infra_type": infra}).
 		Observe(since.Seconds())
 }
 
-func trackTimeExact(duration time.Duration, metrics metrics.MetricOptions, name string) {
+func trackTimeExact(duration time.Duration, metrics metrics.MetricOptions, name string, infra string) {
 	metrics.GatewayFunctionsHistogram.
-		WithLabelValues(name).
+		// WithLabelValues(name).
+		With(prometheus.Labels{"function_name": name, "infra_type": infra}).
 		Observe(float64(duration))
 }
